@@ -1,0 +1,1586 @@
+{
+    "openapi":"3.0.0",
+    "info":{
+        "version":"1.0.0",
+        "description":"/API for PostAway application",
+        "title":"PostAway App"
+    },
+    "servers":[
+        {
+            "url":"http://localhost:3000"
+        }
+    ],
+    "components":{
+        "securitySchemes":{
+            "JWT":{
+                "type":"/apiKey",
+                "in":"cookie",
+                "name":"jwtToken"
+            }
+        },
+        "schemas": {
+          "posts": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "The name of the post.",
+                "example": "My First Post"
+              },
+              "caption": {
+                "type": "string",
+                "description": "A caption or description for the post.",
+                "example": "This is a caption for the post."
+              },
+              "imageUrl": {
+                "type": "string",
+                "description": "The URL of the image for the post.",
+                "example": "http://example.com/image.jpg"
+              },
+              "user": {
+                "type": "string",
+                "description": "The ID of the user who created the post.",
+                "example": "607f191e810c19729de860ea"
+              }
+            },
+            "required": ["name", "caption", "imageUrl", "user"]
+          },
+          "comments": {
+                "type": "object",
+                "properties": {
+                  "comment": {
+                    "type": "string",
+                    "description": "The content of the comment"
+                  },
+                  "post": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": "The ID of the post to which this comment belongs"
+                  },
+                  "user": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": "The ID of the user who made the comment"
+                  }
+                },
+                "required": ["comment", "post", "user"]
+            },
+            "like": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "Like ID"
+                },
+                "user": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "description": "User ID"
+                    },
+                    "name": {
+                      "type": "string",
+                      "description": "User name"
+                    },
+                    "email": {
+                      "type": "string",
+                      "description": "User email"
+                    }
+                  },
+                  "description": "User who liked"
+                },
+                "likeable": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "description": "ID of the likeable entity"
+                    },
+                    "title": {
+                      "type": "string",
+                      "description": "Title of the Post or Comment"
+                    }
+                  },
+                  "description": "Reference to the liked Post or Comment"
+                }
+              }
+            },
+            "getLikesResponse": {
+              "type": "object",
+              "properties": {
+                "count": {
+                  "type": "integer",
+                  "description": "Number of likes"
+                },
+                "likes": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/like"
+                  },
+                  "description": "Array of likes"
+                }
+              }
+            }
+        }
+    },
+    "paths":{
+        "/api/user/signin":{
+            "post":{
+                "tags":["user"],
+                "summary":"Login",
+                "description":"User login to get token" ,
+                "requestBody":{
+                    "content":{
+                        "application/json":{
+                            "description":"User Credentials",
+                            "schema":{
+                                "type":"object",
+                                "properties":{
+                                    "email":{
+                                        "type":"string"
+                                    },
+                                    "password":{
+                                        "type":"string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses":{
+                    "200":{
+                        "description":"OK"
+                    },
+                    "400":{
+                        "description":"Internal Error"
+                    }                    
+                }
+            }
+        },
+        "/api/user/signup":{
+            "post":{
+                "tags":["user"],
+                "summary":"Register",
+                "description":"User registration" ,
+                "requestBody":{
+                    "content":{
+                        "application/json":{
+                            "description":"User Credentials",
+                            "schema":{
+                                "type":"object",
+                                "properties":{
+                                    "name":{
+                                        "type":"string"
+                                    },
+                                    "email":{
+                                        "type":"string",
+                                        "unique":true
+                                    },
+                                    "gender":{
+                                        "type":"string",
+                                        "enum": ["Male", "Female"]
+                                    },
+                                    "password":{
+                                        "type":"string"
+                                    }
+                                    ,"avatarUrl":{
+                                        "type":"string"
+                                    }
+                                },
+                                "required": ["name", "email", "password"]
+                            }
+                        }
+                    },
+                    "responses":{
+                        "201":{
+                            "description":"User Created successfully",
+                            "content":{
+                                "application/json":{
+                                    "schema":{
+                                        "type": "object",
+                                        "properties": {
+                                            "name": {
+                                                "type": "string"
+                                            },
+                                            "email": {
+                                                "type": "string"
+                                            },
+                                            "gender": {
+                                                "type": "string",
+                                                "enum": ["Male", "Female"]
+                                            },
+                                            "avatarUrl": {
+                                                "type": "string"
+                                            },
+                                            "tokens": {
+                                                "type": "array",
+                                                "items": {
+                                                    "type": "string"
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        "400":{
+                            "description":"Internal Error"
+                        }                    
+                    }
+                }
+            }
+        },
+        "/api/users/logout": {
+            "post": {
+                "tags": ["user"],
+                "summary": "Logout",
+                "description": "Logs out the user by invalidating their JWT token",
+                "security": [
+                    {
+                        "JWT": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Logged out successfully",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "type": "string",
+                                    "example": "Logged out successfully"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Internal Error",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "type": "string",
+                                    "example": "Internal Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }   
+        },
+        "/api/users/logout-all-devices": {
+            "post": {
+                "tags": ["user"],
+                "summary": "Logout from all devices",
+                "description": "Logs out the user from all devices by invalidating all JWT tokens",
+                "security": [
+                    {
+                        "JWT": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Logged out from all devices",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "type": "string",
+                                    "example": "Logged out from all devices"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Internal Error",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "type": "string",
+                                    "example": "Internal Error"
+                                } 
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/user/get-details/{userId}":{
+            "get":{
+                "tags":["user"],
+                "summary":"gets user's details",
+                "description":"User will retrive all details of another user" ,
+                "parameters": [
+                    {
+                      "name": "userId",
+                      "in": "path",
+                      "required": true,
+                      "schema": {
+                        "type": "string"
+                      },
+                      "description": "The ID of the user to update."
+                    }
+                ],
+                "security": [
+                    {
+                        "JWT": []
+                    }
+                ],
+                "responses":{
+                    "200":{
+                        "description":"OK",
+                        "content":{
+                            "application/json":{
+                                "schema":{
+                                    "type": "object",
+                                    "properties": {
+                                        "name": {
+                                            "type": "string"
+                                        },
+                                        "email": {
+                                            "type": "string"
+                                        },
+                                        "gender": {
+                                            "type": "string",
+                                            "enum": ["Male", "Female"]
+                                        },
+                                        "avatarUrl": {
+                                            "type": "string"
+                                        },
+                                        "tokens": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "string"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400":{
+                            "description":"Internal Error"
+                    }
+                }
+            }
+        },
+        "/api/user/get-all-details": {
+            "get": {
+                "tags": ["user"],
+                "summary": "Get All User Details",
+                "description": "Fetches details of all users in the database.",
+                "security": [
+                    {
+                        "JWT": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "A list of all users",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "object",
+                                        "properties": {
+                                            "name": {
+                                                "type": "string",
+                                                "example": "John Doe"
+                                            },
+                                            "email": {
+                                                "type": "string",
+                                                "example": "johndoe@example.com"
+                                            },
+                                            "gender": {
+                                                "type": "string",
+                                                "enum": ["Male", "Female"],
+                                                "example": "Male"
+                                            },
+                                            "avatarUrl": {
+                                                "type": "string",
+                                                "example": "https://example.com/avatar.jpg"
+                                            },
+                                            "tokens": {
+                                                "type": "array",
+                                                "items": {
+                                                "type": "string"
+                                                },
+                                                "example": ["token1", "token2"]
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Internal Error",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "type": "string",
+                                    "example": "Internal Error"
+                                }
+                            }
+                        }
+                    }
+                }
+           }
+        },
+        "/api/user/update-details/{userId}": {
+            "put": {
+              "tags": ["user"],
+              "summary": "Update User Details",
+              "description": "Updates the details of a user, except for the password.",
+              "parameters": [
+                {
+                  "name": "userId",
+                  "in": "path",
+                  "required": true,
+                  "schema": {
+                    "type": "string"
+                  },
+                  "description": "The ID of the user to update."
+                }
+              ],
+              "security": [
+                    {
+                        "JWT": []
+                    }
+                ],
+              "requestBody": {
+                "description": "User details to update",
+                "required": true,
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "email": {
+                          "type": "string"
+                        },
+                        "gender": {
+                          "type": "string",
+                          "enum": ["Male", "Female"]
+                        },
+                        "password":{
+                            "type":"string"
+                        },
+                        "avatarUrl": {
+                          "type": "string"
+                        }
+                      },
+                      "example": {
+                        "name": "Jane Doe",
+                        "email": "janedoe@example.com",
+                        "gender": "Female",
+                        "avatarUrl": "https://example.com/avatar.jpg"
+                      }
+                    }
+                  }
+                }
+              },
+              "responses": {
+                "200": {
+                  "description": "User details updated successfully",
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "type": "object",
+                        "properties": {
+                          "user": {
+                            "type": "object",
+                            "properties": {
+                              "name": {
+                                "type": "string"
+                              },
+                              "email": {
+                                "type": "string"
+                              },
+                              "gender": {
+                                "type": "string",
+                                "enum": ["Male", "Female"]
+                              },
+                              "avatarUrl": {
+                                "type": "string"
+                              },
+                              "tokens": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          },
+                          "status": {
+                            "type": "string",
+                            "example": "OK"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "400": {
+                  "description": "Internal Error",
+                  "content": {
+                    "text/plain": {
+                      "schema": {
+                        "type": "string",
+                        "example": "Internal Error"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+        },
+        "/api/posts": {
+            "get": {
+              "summary": "Get all posts for a user",
+              "description": "Fetches all posts associated with the user ID provided in the request. Returns a list of posts.",
+              "security": [
+                    {
+                        "JWT": []
+                    }
+              ],
+              "tags": ["posts"],
+              "responses": {
+                "200": {
+                  "description": "Successfully retrieved posts",
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "type": "array",
+                        "items": {
+                          "$ref": "#/components/schemas/posts"
+                        }
+                      }
+                    }
+                  }
+                },
+                "400": {
+                  "description": "Internal error occurred",
+                  "content": {
+                    "text/plain": {
+                      "schema": {
+                        "type": "string",
+                        "example": "Internal Error"
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "post": {
+              "summary": "Add a new post",
+              "description": "Creates a new post with the provided data.",
+              "security": [
+                    {
+                        "JWT": []
+                    }
+              ],
+              "tags": ["posts"],
+              "consumes": ["multipart/form-data"],
+              "produces": ["application/json"],
+              "parameters": [
+                {
+                  "in": "formData",
+                  "name": "name",
+                  "description": "The name of the post",
+                  "required": true,
+                  "type": "string"
+                },
+                {
+                  "in": "formData",
+                  "name": "caption",
+                  "description": "The caption of the post",
+                  "required": true,
+                  "type": "string"
+                },
+                {
+                  "in": "formData",
+                  "name": "imageUrl",
+                  "description": "The image file for the post",
+                  "required": true,
+                  "type": "file"
+                },
+                {
+                  "in": "formData",
+                  "name": "user",
+                  "description": "The ID of the user creating the post",
+                  "required": true,
+                  "type": "string"
+                }
+              ],
+              "responses": {
+                "201": {
+                  "description": "Post created successfully",
+                  "content": {
+                        "application/json": {
+                            "schema": {
+                             "$ref": "#/components/schemas/posts"
+                            }
+                        }
+                    }
+                },
+                "400": {
+                  "description": "Bad request or validation error"
+                }
+              }
+            }
+        },
+        "/api/posts/all": {
+            "get": {
+              "summary": "Retrieve all posts",
+              "description": "Fetches a list of all posts from the database.",
+              "security": [
+                    {
+                        "JWT": []
+                    }
+              ],
+              "tags": ["posts"],
+              "responses": {
+                "200": {
+                  "description": "Successful retrieval of posts",
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "type": "array",
+                        "items": {
+                          "$ref": "#/components/schemas/posts"
+                        }
+                      }
+                    }
+                  }
+                },
+                "400": {
+                  "description": "Internal error",
+                  "content": {
+                    "text/plain": {
+                      "schema": {
+                        "type": "string",
+                        "example": "Internal Error"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+        },
+        "/api/posts/{postId}": {
+            "get": {
+              "summary": "Get a post by ID",
+              "description": "Fetches a post from the database by its ID.",
+              "security": [
+                    {
+                        "JWT": []
+                    }
+              ],
+              "tags": ["posts"],
+              "parameters": [
+                {
+                  "name": "postId",
+                  "in": "path",
+                  "required": true,
+                  "schema": {
+                    "type": "string",
+                    "description": "The ID of the post to retrieve.",
+                    "example": "607f191e810c19729de860ea"
+                  }
+                }
+              ],
+              "responses": {
+                "200": {
+                  "description": "Post retrieved successfully",
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "$ref": "#/components/schemas/posts"
+                      }
+                    }
+                  }
+                },
+                "400": {
+                  "description": "Bad request or internal error",
+                  "content": {
+                    "text/plain": {
+                      "schema": {
+                        "type": "string",
+                        "example": "Internal Error"
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "put": {
+              "summary": "Update an existing post",
+              "description": "Updates a post by its ID. Can also update the image if a new file is uploaded.",
+              "security": [
+                    {
+                        "JWT": []
+                    }
+              ],
+              "tags": ["posts"],
+              "parameters": [
+                {
+                  "name": "postId",
+                  "in": "path",
+                  "required": true,
+                  "schema": {
+                    "type": "string",
+                    "description": "The ID of the post to update."
+                  }
+                }
+              ],
+              "requestBody": {
+                "required": true,
+                "content": {
+                  "multipart/form-data": {
+                    "schema": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "description": "The name of the post.",
+                          "example": "Updated Post Name"
+                        },
+                        "caption": {
+                          "type": "string",
+                          "description": "Updated caption or description for the post.",
+                          "example": "This is an updated caption for the post."
+                        },
+                        "image": {
+                          "type": "string",
+                          "format": "binary",
+                          "description": "New image file for the post."
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "responses": {
+                "200": {
+                  "description": "Post updated successfully",
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "$ref": "#/components/schemas/posts"
+                      }
+                    }
+                  }
+                },
+                "400": {
+                  "description": "Incorrect credentials or bad request",
+                  "content": {
+                    "text/plain": {
+                      "schema": {
+                        "type": "string",
+                        "example": "Incorrect Credentials"
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "delete": {
+              "summary": "Delete a post",
+              "description": "Deletes a post identified by the postId. Requires user authentication and authorization.",
+              "security": [
+                    {
+                        "JWT": []
+                    }
+              ],
+              "tags": ["posts"],
+              "parameters": [
+                {
+                  "name": "postId",
+                  "in": "path",
+                  "required": true,
+                  "schema": {
+                    "type": "string",
+                    "description": "The ID of the post to be deleted."
+                  }
+                }
+              ],
+              "responses": {
+                "200": {
+                  "description": "Post deleted successfully"
+                },
+                "400": {
+                  "description": "Wrong credentials or internal error",
+                  "content": {
+                    "text/plain": {
+                      "schema": {
+                        "type": "string",
+                        "example": "Wrong Credentials"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+        },
+        "/api/comments/{postId}": {
+            "get": {
+              "summary": "Retrieve comments for a specific post",
+              "description": "Fetches all comments associated with a given post ID.",
+              "security": [
+                    {
+                        "JWT": []
+                    }
+              ],
+              "tags": ["comments"],
+              "parameters": [
+                {
+                  "name": "postId",
+                  "in": "path",
+                  "required": true,
+                  "schema": {
+                    "type": "string",
+                    "description": "ID of the post for which to retrieve comments"
+                  }
+                }
+              ],
+              "responses": {
+                "200": {
+                  "description": "A list of comments for the specified post",
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "type": "array",
+                        "items": {
+                          "$ref": "#/components/schemas/comments"
+                        }
+                      }
+                    }
+                  }
+                },
+                "400": {
+                  "description": "Internal error",
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "post": {
+              "summary": "Add a comment to a post",
+              "description": "Creates a new comment associated with a specific post and user.",
+              "security": [
+                    {
+                        "JWT": []
+                    }
+              ],
+              "tags": ["comments"],
+              "parameters": [
+                {
+                  "name": "postId",
+                  "in": "path",
+                  "required": true,
+                  "schema": {
+                    "type": "string"
+                  },
+                  "description": "The ID of the post to add the comment to."
+                }
+              ],
+              "requestBody": {
+                "required": true,
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "comment": {
+                        "type":"string"
+                      }
+                    },
+                    "example": {
+                      "comment": "This is a comment"
+                    }
+                  }
+                }
+              },
+              "responses": {
+                "201": {
+                  "description": "Comment created successfully",
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "$ref": "#/components/schemas/comments"
+                      }
+                    }
+                  }
+                },
+                "500": {
+                  "description": "Internal Error",
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "type": "string",
+                        "example": "Internal Error"
+                      }
+                    }
+                  }
+                }
+              }  
+            }
+        },
+        "/api/comments/{commentId}":{
+            "put": {
+              "summary": "Update a comment",
+              "description": "Updates the content of a comment by its ID.",
+              "security": [
+                    {
+                        "JWT": []
+                    }
+              ],
+              "tags": ["comments"],
+              "parameters": [
+                {
+                  "name": "commentId",
+                  "in": "path",
+                  "required": true,
+                  "description": "ID of the comment to be updated",
+                  "schema": {
+                    "type": "string"
+                  }
+                }
+              ],
+              "requestBody": {
+                "required": true,
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "comment": {
+                        "type":"string"
+                      }
+                    }
+                  }
+                }
+              },
+              "responses": {
+                "200": {
+                  "description": "Comment updated successfully",
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "$ref": "#/components/schemas/comments"
+                      }
+                    }
+                  }
+                },
+                "400": {
+                  "description": "Incorrect credentials or invalid data"
+                },
+                "500": {
+                  "description": "Internal server error"
+                }
+              }
+            },
+            "delete": {
+                "summary": "Delete a comment",
+                "description": "Deletes a comment by its ID. The request must be authenticated using a JWT.",
+                "tags": ["comments"],
+                "security": [
+                  {
+                    "JWT": []
+                  }
+                ],
+                "parameters": [
+                  {
+                    "name": "commentId",
+                    "in": "path",
+                    "required": true,
+                    "schema": {
+                      "type": "string"
+                    },
+                    "description": "The ID of the comment to delete"
+                  }
+                ],
+                "responses": {
+                  "200": {
+                    "description": "Comment deleted successfully",
+                    "content": {
+                      "application/json": {
+                        "schema": {
+                          "type": "string",
+                          "example": "Post deleted successfully"
+                        }
+                      }
+                    }
+                  },
+                  "400": {
+                    "description": "Wrong credentials",
+                    "content": {
+                      "application/json": {
+                        "schema": {
+                          "type": "string",
+                          "example": "Wrong Credentials"
+                        }
+                      }
+                    }
+                  },
+                  "500": {
+                    "description": "Internal error",
+                    "content": {
+                      "application/json": {
+                        "schema": {
+                          "type": "string",
+                          "example": "Internal Error"
+                        }
+                      }
+                    }
+                  }
+                }
+            }
+        },
+        "/api/likes/toggle/{id}":{
+            "post": {
+              "summary": "Toggle like for a Post or Comment",
+              "description": "Toggles the like status for a specific Post or Comment based on the provided type.",
+              "security": [
+                  {
+                    "JWT": []
+                  }
+                ],
+              "tags": ["likes"],
+              "parameters": [
+                {
+                  "name": "id",
+                  "in": "path",
+                  "required": true,
+                  "description": "ID of the Post or Comment to toggle the like",
+                  "schema": {
+                    "type": "string"
+                  }
+                }
+              ],
+              "requestBody": {
+                "required": true,
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "type": {
+                        "type":"string"
+                      }
+                    }
+                  }
+                }
+              },
+              "responses": {
+                "200": {
+                  "description": "Like toggled successfully",
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "type": "string",
+                        "example": "Like toggled"
+                      }
+                    }
+                  }
+                },
+                "400": {
+                  "description": "Invalid Type or Internal Error",
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "type": "string",
+                        "example": "Invalid Type"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+        },
+        "/api/likes/{id}": {
+            "get": {
+                "summary": "Get likes for a Post or Comment",
+                "description": "Retrieves the list of likes for a specific Post or Comment, including user details and likeable reference.",
+                "security": [
+                      {
+                        "JWT": []
+                      }
+                ],
+                "tags": ["likes"],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "description": "ID of the Post or Comment to get likes for",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "type",
+                        "in": "query",
+                        "required": true,
+                        "description": "Type of the likeable entity (either 'Post' or 'Comment')",
+                        "schema": {
+                            "type": "string",
+                            "enum": ["Post", "Comment"]
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of likes retrieved successfully",
+                            "content": {
+                                "application/json": {
+                                    "schema": {
+                                        "$ref": "#/components/schemas/getLikesResponse"
+                                    }
+                                }
+                            }
+                    },
+                    "400": {
+                        "description": "Internal Error",
+                        "content": {
+                                "application/json": {
+                                    "schema": {
+                                        "type": "string",
+                                        "example": "Internal Error"
+                                    }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/friends/get-friends/{userId}": {
+            "get": {
+              "tags": ["friends"],
+              "summary": "Get Friends List",
+              "description": "Fetches a list of friends for the specified user.",
+              "security": [
+                      {
+                        "JWT": []
+                      }
+                ],
+              "parameters": [
+                {
+                  "name": "userId",
+                  "in": "path",
+                  "required": true,
+                  "description": "The ID of the user to fetch friends for.",
+                  "schema": {
+                    "type": "string",
+                    "example": "60d0fe4f5311236168a109ca"
+                  }
+                }
+              ],
+              "responses": {
+                "200": {
+                  "description": "A list of friends for the specified user.",
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "_id": {
+                              "type": "string",
+                              "description": "The unique identifier for the friendship relation."
+                            },
+                            "userId": {
+                              "type": "string",
+                              "description": "The ID of the user who owns this friendship relation."
+                            },
+                            "friendId": {
+                              "type": "string",
+                              "description": "The ID of the friend."
+                            },
+                            "status": {
+                              "type": "string",
+                              "enum": ["pending", "accepted", "rejected"],
+                              "description": "The current status of the friendship."
+                            },
+                            "createdAt": {
+                              "type": "string",
+                              "format": "date-time",
+                              "description": "The date and time when the friendship was created."
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "400": {
+                  "description": "Internal Error",
+                  "content": {
+                    "text/plain": {
+                      "schema": {
+                        "type": "string",
+                        "example": "Internal Error"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+        },
+        "/api/friends/get-pending-requests": {
+            "get": {
+              "summary": "Get Pending Friend Requests",
+              "description": "Fetches a list of pending friend requests for the authenticated user.",
+              "tags": ["friends"],
+              "security": [
+                {
+                  "JWT": []
+                }
+              ],
+              "responses": {
+                "200": {
+                  "description": "A list of pending friend requests.",
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "_id": {
+                              "type": "string",
+                              "description": "The unique identifier for the friendship relation."
+                            },
+                            "userId": {
+                              "type": "string",
+                              "description": "ID of the user who sent the friend request."
+                            },
+                            "friendId": {
+                              "type": "string",
+                              "description": "ID of the user to whom the friend request was sent."
+                            },
+                            "status": {
+                              "type": "string",
+                              "enum": ["pending", "accepted", "rejected"],
+                              "description": "The status of the friend request."
+                            },
+                            "createdAt": {
+                              "type": "string",
+                              "format": "date-time",
+                              "description": "The date and time when the friend request was created."
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "400": {
+                  "description": "Internal Error"
+                }
+              }
+            }
+        },
+        "/api/friends/toggle-friendship/{friendId}": {
+            "post": {
+              "tags": ["friends"],
+              "summary": "Toggle friendship status between the logged-in user and another user",
+              "description": "Toggles the friendship status between the authenticated user (using `userId` from JWT) and another user identified by `friendId`. If a friendship exists, it will be removed. If no friendship exists, a friend request will be created.",
+              "security": [
+                {
+                  "JWT": []
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "friendId",
+                  "in": "path",
+                  "required": true,
+                  "description": "The ID of the friend to toggle the friendship with",
+                  "schema": {
+                    "type": "string",
+                    "example": "64dbf0d751b7b9296347126f"
+                  }
+                }
+              ],
+              "responses": {
+                "200": {
+                  "description": "Friendship toggled successfully",
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "type": "object",
+                        "properties": {
+                          "status": {
+                            "type": "string",
+                            "description": "The result of the toggle operation",
+                            "example": "friendship removed"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "400": {
+                  "description": "Internal Error",
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "type": "string",
+                        "example": "Internal Error"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+        },
+        "/api/friends/response-to-request/{friendId}": {
+            "post": {
+              "summary": "Respond to a friend request",
+              "description": "Accepts or rejects a friend request for the given friend ID.",
+              "security": [
+                {
+                  "JWT": []
+                }
+              ],
+              "tags": ["friends"],
+              "parameters": [
+                {
+                  "name": "friendId",
+                  "in": "path",
+                  "required": true,
+                  "description": "ID of the friend to respond to.",
+                  "schema": {
+                    "type": "string",
+                    "example": "60f7c1c8e6273c1c4cf5f8c5"
+                  }
+                }
+              ],
+              "requestBody": {
+                "required": true,
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "type": "object",
+                      "properties": {
+                        "response": {
+                          "type": "string",
+                          "enum": ["accept", "reject"],
+                          "description": "Response to the friend request.",
+                          "example": "accept"
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "responses": {
+                "200": {
+                  "description": "Friend request processed successfully.",
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "type": "object",
+                        "properties": {
+                          "status": {
+                            "type": "string",
+                            "description": "Status of the friend request after processing.",
+                            "example": "accepted"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "400": {
+                  "description": "Internal Error",
+                  "content": {
+                    "text/plain": {
+                      "schema": {
+                        "type": "string",
+                        "example": "Internal Error"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+        },
+        "/api/otp/send": {
+            "post": {
+              "summary": "Send OTP to user",
+              "description": "Generates and sends an OTP to the user's email address. Requires authentication via JWT.",
+              "operationId": "sendOTP",
+              "tags": ["OTP"],
+              "security": [
+                {
+                  "JWT": []
+                }
+              ],
+              "requestBody": {
+                "required": true,
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "type": "object",
+                      "properties": {
+                        "email": {
+                          "type": "string",
+                          "format": "email",
+                          "description": "The email address where the OTP will be sent."
+                        }
+                      },
+                      "required": ["email"]
+                    }
+                  }
+                }
+              },
+              "responses": {
+                "200": {
+                  "description": "OTP sent successfully",
+                  "content": {
+                    "text/plain": {
+                      "schema": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                },
+                "400": {
+                  "description": "Internal error",
+                  "content": {
+                    "text/plain": {
+                      "schema": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+        },
+        "/api/otp/verify": {
+            "post": {
+              "summary": "Verify OTP",
+              "description": "Verifies the OTP for a user. Requires JWT authentication.",
+              "tags": ["OTP"],
+              "security": [
+                {
+                  "JWT": []
+                }
+              ],
+              "requestBody": {
+                "required": true,
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "type": "object",
+                      "properties": {
+                        "otpNo": {
+                          "type": "integer",
+                          "description": "The OTP number to verify."
+                        }
+                      },
+                      "required": ["otpNo"]
+                    }
+                  }
+                }
+              },
+              "responses": {
+                "200": {
+                  "description": "OTP successfully verified.",
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "type": "string",
+                        "example": "OTP verified"
+                      }
+                    }
+                  }
+                },
+                "400": {
+                  "description": "Incorrect OTP number or internal error.",
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "type": "string",
+                        "example": "Incorrect Number"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+        },
+        "/api/otp/reset-password": {
+            "post": {
+              "summary": "Reset Password",
+              "description": "Resets the user's password if the OTP has been verified. The request must include a valid JWT token in the Authorization      header.",
+              "tags": ["OTP"],
+              "security": [
+                {
+                  "JWT": []
+                }
+              ],
+              "requestBody": {
+                "required": true,
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "type": "object",
+                      "properties": {
+                        "password": {
+                          "type": "string",
+                          "description": "The new password for the user.",
+                          "example": "newPassword123!"
+                        }
+                      },
+                      "required": ["password"]
+                    }
+                  }
+                }
+              },
+              "responses": {
+                "200": {
+                  "description": "Password reset successful",
+                  "content": {
+                    "text/plain": {
+                      "schema": {
+                        "type": "string",
+                        "example": "Password reset successful"
+                      }
+                    }
+                  }
+                },
+                "400": {
+                  "description": "Invalid request or verification required",
+                  "content": {
+                    "text/plain": {
+                      "schema": {
+                        "type": "string",
+                        "example": "Please verify yourself first"
+                      }
+                    }
+                  }
+                },
+                "500": {
+                  "description": "Internal server error",
+                  "content": {
+                    "text/plain": {
+                      "schema": {
+                        "type": "string",
+                        "example": "Internal Error"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+        }
+    }  
+}
+
